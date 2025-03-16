@@ -1,0 +1,600 @@
+import React, { useState } from 'react';
+
+const PoliticianDatabase = () => {
+  // カテゴリー定義
+  const categories = [
+    { id: 'all', name: 'すべての政治家' },
+    { id: 'minister', name: '現役大臣' },
+    { id: 'incompetent', name: '無能な政治家' },
+    { id: 'governor', name: '現役都道府県知事' },
+    { id: 'council', name: '市議長' }
+  ];
+
+  // サンプルデータ
+  const [politicians, setPoliticians] = useState([
+    {
+      id: 1,
+      name: '山田太郎',
+      party: '日本未来党',
+      position: '衆議院議員',
+      region: '東京都',
+      promiseRate: 72,
+      photo: '/api/placeholder/80/80',
+      bio: '1975年生まれ。東京大学法学部卒業後、弁護士として活動。2010年に政界に進出し、以来教育改革と社会保障の拡充に力を入れている。趣味は読書と山登り。',
+      categories: ['minister'],
+      promises: [
+        { text: '教員の待遇改善', status: 'fulfilled' },
+        { text: '高齢者医療費の軽減', status: 'fulfilled' },
+        { text: '再生可能エネルギーの拡大', status: 'in_progress' },
+        { text: '教育機関のデジタル化', status: 'fulfilled' },
+        { text: '法人税率の見直し', status: 'not_fulfilled' }
+      ],
+      videos: [
+        { title: '国会での代表質問', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', date: '2023-06-15' },
+        { title: '政策発表記者会見', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', date: '2023-03-22' }
+      ],
+    },
+    {
+      id: 2,
+      name: '鈴木花子',
+      party: '市民連合',
+      position: '参議院議員',
+      region: '大阪府',
+      promiseRate: 45,
+      photo: '/api/placeholder/80/80',
+      bio: '1980年生まれ。関西大学経済学部卒業後、シンクタンク勤務を経て政界へ。地域経済の活性化と子育て支援に関心がある。',
+      categories: ['incompetent'],
+      promises: [
+        { text: '保育所の増設', status: 'fulfilled' },
+        { text: '中小企業の税制優遇', status: 'in_progress' },
+        { text: '地方自治体への権限移譲', status: 'not_fulfilled' },
+        { text: '子ども手当の増額', status: 'not_fulfilled' }
+      ],
+      videos: [
+        { title: '予算委員会での質疑', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', date: '2023-05-20' }
+      ],
+    },
+    {
+      id: 3,
+      name: '佐藤健太',
+      party: '地方創生党',
+      position: '県知事',
+      region: '福岡県',
+      promiseRate: 82,
+      photo: '/api/placeholder/80/80',
+      bio: '1972年生まれ。九州大学経済学部卒業。県議会議員を2期務めた後、知事に当選。観光振興と県内企業のデジタル化に注力している。',
+      categories: ['governor'],
+      promises: [
+        { text: '観光客数の30%増加', status: 'fulfilled' },
+        { text: '県内企業のDX支援', status: 'fulfilled' },
+        { text: '県立学校の設備刷新', status: 'in_progress' }
+      ],
+      videos: [
+        { title: '県政報告会', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', date: '2023-04-10' }
+      ],
+    },
+    {
+      id: 4,
+      name: '田中美咲',
+      party: '市民の会',
+      position: '市議会議長',
+      region: '神奈川県横浜市',
+      promiseRate: 68,
+      photo: '/api/placeholder/80/80',
+      bio: '1983年生まれ。地元の商店街で育ち、市民活動を経て政界入り。市民参加型の行政運営と商店街の活性化に取り組んでいる。防災対策も重要課題として推進中。',
+      categories: ['council'],
+      promises: [
+        { text: '市民ワークショップの開催', status: 'fulfilled' },
+        { text: '空き店舗活用プログラム', status: 'in_progress' },
+        { text: '津波避難訓練の実施', status: 'fulfilled' }
+      ],
+      videos: [
+        { title: '市議会本会議', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', date: '2023-03-05' }
+      ],
+    }
+  ]);
+  
+  // 状態管理
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedPolitician, setSelectedPolitician] = useState(null);
+  const [selectedTab, setSelectedTab] = useState('profile');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProfile, setEditedProfile] = useState({});
+  const [showSaveMessage, setShowSaveMessage] = useState(false);
+
+  // 検索フィルター
+  const filteredPoliticians = politicians.filter(politician => {
+    // カテゴリフィルター
+    if (selectedCategory !== 'all' && !politician.categories.includes(selectedCategory)) {
+      return false;
+    }
+    
+    // テキスト検索
+    const query = searchQuery.toLowerCase();
+    return (
+      politician.name.toLowerCase().includes(query) ||
+      politician.party.toLowerCase().includes(query) ||
+      politician.region.toLowerCase().includes(query) ||
+      politician.position.toLowerCase().includes(query)
+    );
+  });
+
+  // 公約達成率に基づく色を取得
+  const getRateColor = (rate) => {
+    if (rate >= 70) return 'bg-green-600';
+    if (rate >= 40) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const getRateBadgeColor = (rate) => {
+    if (rate >= 70) return 'bg-green-100 text-green-800';
+    if (rate >= 40) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      <header className="bg-blue-600 text-white p-4">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-2xl font-bold">政治家データベース</h1>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto flex-grow p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* 左サイド: 検索・フィルター */}
+          <div className="md:col-span-1">
+            <div className="bg-white p-4 rounded-lg shadow mb-4">
+              <div className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="政治家、政党、地域で検索..."
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <span className="absolute right-2 top-2 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+
+              <div className="mb-2">
+                <div className="text-sm font-medium mb-2">カテゴリーでフィルター</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {categories.map(category => (
+                    <button
+                      key={category.id}
+                      className={`text-sm px-3 py-1.5 rounded border ${
+                        selectedCategory === category.id
+                          ? 'bg-blue-500 text-white border-blue-500'
+                          : 'border-gray-300 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setSelectedCategory(category.id)}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-500 mt-3 flex justify-between">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-green-500 mr-1"></div>
+                  <span>達成率70%以上</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500 mr-1"></div>
+                  <span>達成率40-69%</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-red-500 mr-1"></div>
+                  <span>達成率40%未満</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 政治家リスト */}
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-3 border-b">
+                <h2 className="font-medium">政治家一覧</h2>
+                <div className="text-sm text-gray-500">
+                  {filteredPoliticians.length}人の政治家が見つかりました
+                </div>
+              </div>
+              <div className="divide-y">
+                {filteredPoliticians.map(politician => (
+                  <div 
+                    key={politician.id}
+                    className={`p-3 hover:bg-blue-50 cursor-pointer ${
+                      selectedPolitician?.id === politician.id ? 'bg-blue-50' : ''
+                    }`}
+                    onClick={() => setSelectedPolitician(politician)}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <img 
+                        src={politician.photo} 
+                        alt={politician.name} 
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center">
+                          <h3 className="font-medium truncate">{politician.name}</h3>
+                          <div className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${getRateBadgeColor(politician.promiseRate)}`}>
+                            {politician.promiseRate}%
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500 truncate">{politician.position} • {politician.party}</p>
+                        <p className="text-sm text-gray-500 truncate">{politician.region}</p>
+                        
+                        <div className="w-full bg-gray-200 rounded-full h-1 mt-2">
+                          <div 
+                            className={`h-1 rounded-full ${getRateColor(politician.promiseRate)}`}
+                            style={{ width: `${politician.promiseRate}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {filteredPoliticians.length === 0 && (
+                  <div className="p-4 text-center text-gray-500">
+                    該当する政治家が見つかりません
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 右サイド: 政治家詳細 */}
+          <div className="md:col-span-2">
+            {selectedPolitician ? (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-start mb-6">
+                  <img 
+                    src={selectedPolitician.photo} 
+                    alt={selectedPolitician.name} 
+                    className="w-24 h-24 rounded-full object-cover mr-4"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center flex-wrap">
+                      <h2 className="text-2xl font-bold mr-2">{selectedPolitician.name}</h2>
+                      <div className={`text-sm px-2 py-1 rounded-full ${getRateBadgeColor(selectedPolitician.promiseRate)}`}>
+                        公約達成率 {selectedPolitician.promiseRate}%
+                      </div>
+                    </div>
+                    <p className="text-gray-700 mt-1">
+                      {selectedPolitician.position} • {selectedPolitician.party} • {selectedPolitician.region}
+                    </p>
+                    
+                    <div className="mt-3">
+                      <div className="border-b">
+                        <div className="flex space-x-4">
+                          <button
+                            className={`pb-2 px-1 ${selectedTab === 'profile' 
+                              ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
+                              : 'text-gray-500'}`}
+                            onClick={() => setSelectedTab('profile')}
+                          >
+                            プロフィール
+                          </button>
+                          <button
+                            className={`pb-2 px-1 ${selectedTab === 'promises' 
+                              ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
+                              : 'text-gray-500'}`}
+                            onClick={() => setSelectedTab('promises')}
+                          >
+                            公約
+                          </button>
+                          <button
+                            className={`pb-2 px-1 ${selectedTab === 'videos' 
+                              ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
+                              : 'text-gray-500'}`}
+                            onClick={() => setSelectedTab('videos')}
+                          >
+                            動画
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* タブコンテンツ */}
+                {selectedTab === 'profile' && (
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">基本情報</h3>
+                      {!isEditing ? (
+                        <button 
+                          onClick={() => {
+                            setEditedProfile({
+                              party: selectedPolitician.party,
+                              position: selectedPolitician.position,
+                              region: selectedPolitician.region,
+                              bio: selectedPolitician.bio || '',
+                              categories: [...selectedPolitician.categories]
+                            });
+                            setIsEditing(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                          編集
+                        </button>
+                      ) : (
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={() => {
+                              // 保存処理
+                              setPoliticians(politicians.map(p => 
+                                p.id === selectedPolitician.id 
+                                  ? { ...p, ...editedProfile }
+                                  : p
+                              ));
+                              setSelectedPolitician({
+                                ...selectedPolitician,
+                                ...editedProfile
+                              });
+                              setIsEditing(false);
+                              
+                              // 保存メッセージを表示
+                              setShowSaveMessage(true);
+                              setTimeout(() => setShowSaveMessage(false), 3000);
+                            }}
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                          >
+                            保存
+                          </button>
+                          <button 
+                            onClick={() => setIsEditing(false)}
+                            className="border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-100"
+                          >
+                            キャンセル
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {showSaveMessage && (
+                      <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded relative">
+                        <span className="block sm:inline">変更が保存されました</span>
+                      </div>
+                    )}
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-gray-500">政党</p>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+                            value={editedProfile.party}
+                            onChange={e => setEditedProfile({...editedProfile, party: e.target.value})}
+                          />
+                        ) : (
+                          <p>{selectedPolitician.party}</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">役職</p>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+                            value={editedProfile.position}
+                            onChange={e => setEditedProfile({...editedProfile, position: e.target.value})}
+                          />
+                        ) : (
+                          <p>{selectedPolitician.position}</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">地域</p>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+                            value={editedProfile.region}
+                            onChange={e => setEditedProfile({...editedProfile, region: e.target.value})}
+                          />
+                        ) : (
+                          <p>{selectedPolitician.region}</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">公約達成率</p>
+                        <p className={`font-medium ${
+                          selectedPolitician.promiseRate >= 70 ? 'text-green-600' : 
+                          selectedPolitician.promiseRate >= 40 ? 'text-yellow-600' : 
+                          'text-red-600'
+                        }`}>
+                          {selectedPolitician.promiseRate}%
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-500 mb-1">プロフィール</p>
+                      {isEditing ? (
+                        <textarea
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+                          rows="4"
+                          value={editedProfile.bio}
+                          onChange={e => setEditedProfile({...editedProfile, bio: e.target.value})}
+                        ></textarea>
+                      ) : (
+                        <p className="text-gray-800">{selectedPolitician.bio || '情報なし'}</p>
+                      )}
+                    </div>
+                    
+                    <h3 className="text-lg font-medium mb-2">カテゴリ</h3>
+                    {isEditing ? (
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        {categories.filter(c => c.id !== 'all').map(category => (
+                          <label key={category.id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={editedProfile.categories.includes(category.id)}
+                              onChange={e => {
+                                const checked = e.target.checked;
+                                setEditedProfile(prev => ({
+                                  ...prev,
+                                  categories: checked 
+                                    ? [...prev.categories, category.id]
+                                    : prev.categories.filter(id => id !== category.id)
+                                }));
+                              }}
+                              className="rounded text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>{category.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {selectedPolitician.categories.map(catId => {
+                          const category = categories.find(c => c.id === catId);
+                          return category ? (
+                            <span key={catId} className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                              {category.name}
+                            </span>
+                          ) : null;
+                        })}
+                        {selectedPolitician.categories.length === 0 && (
+                          <span className="text-gray-500">カテゴリなし</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {selectedTab === 'promises' && (
+                  <div>
+                    <div className="mb-4">
+                      <h3 className="text-lg font-medium mb-2">公約達成状況</h3>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                        <div 
+                          className={`h-2.5 rounded-full ${getRateColor(selectedPolitician.promiseRate)}`}
+                          style={{ width: `${selectedPolitician.promiseRate}%` }}
+                        ></div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2 text-center mb-4">
+                        <div className="bg-gray-50 p-3 rounded">
+                          <div className="text-lg font-bold text-green-600">
+                            {selectedPolitician.promises.filter(p => p.status === 'fulfilled').length}
+                          </div>
+                          <div className="text-xs text-gray-500">達成済</div>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded">
+                          <div className="text-lg font-bold text-blue-600">
+                            {selectedPolitician.promises.filter(p => p.status === 'in_progress').length}
+                          </div>
+                          <div className="text-xs text-gray-500">進行中</div>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded">
+                          <div className="text-lg font-bold text-red-600">
+                            {selectedPolitician.promises.filter(p => p.status === 'not_fulfilled').length}
+                          </div>
+                          <div className="text-xs text-gray-500">未達成</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">公約一覧</h3>
+                      <div className="space-y-3">
+                        {selectedPolitician.promises.map((promise, idx) => (
+                          <div key={idx} className="flex items-center p-3 border rounded-lg">
+                            <div className={`w-3 h-3 rounded-full mr-3 ${
+                              promise.status === 'fulfilled' ? 'bg-green-500' : 
+                              promise.status === 'in_progress' ? 'bg-blue-500' : 
+                              'bg-red-500'
+                            }`}></div>
+                            <div className="flex-1">
+                              <p>{promise.text}</p>
+                            </div>
+                            <div>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                promise.status === 'fulfilled' ? 'bg-green-100 text-green-800' : 
+                                promise.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {promise.status === 'fulfilled' ? '達成' : 
+                                 promise.status === 'in_progress' ? '進行中' : '未達成'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {selectedTab === 'videos' && (
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">動画一覧</h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      {selectedPolitician.videos.map((video, idx) => (
+                        <div key={idx} className="border rounded-lg overflow-hidden">
+                          <div className="aspect-w-16 aspect-h-9">
+                            <iframe 
+                              src={video.url} 
+                              title={video.title}
+                              className="w-full h-full"
+                              allowFullScreen
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            ></iframe>
+                          </div>
+                          <div className="p-3">
+                            <h4 className="font-medium">{video.title}</h4>
+                            <p className="text-sm text-gray-500">{video.date}</p>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {selectedPolitician.videos.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          動画がありません
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow p-8 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h2 className="text-xl font-medium mb-2">政治家を選択してください</h2>
+                <p className="text-gray-500">
+                  左側のリストから政治家を選択すると、詳細情報が表示されます。
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      <footer className="bg-gray-800 text-white p-4 mt-6">
+        <div className="max-w-6xl mx-auto text-center">
+          <p>© 2025 政治家データベース - オープンな政治情報のためのプラットフォーム</p>
+          <p className="text-sm mt-1 text-gray-400">
+            このサイトはWikipediaの自由度とRedditの評価システムを採用しています
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default PoliticianDatabase;
